@@ -1,0 +1,1 @@
+This adds a very simple dynamic type to the types API.
