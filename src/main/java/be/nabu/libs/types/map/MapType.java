@@ -27,6 +27,10 @@ public class MapType extends BaseType<Map> implements ModifiableComplexType {
 	private List<Group> groups = new ArrayList<Group>();
 	private Map<String, Element<?>> elements = new HashMap<String, Element<?>>();
 	
+	public MapType() {
+		setName("anonymous");
+	}
+	
 	@Override
 	public String getName(Value<?>...values) {
 		return ValueUtils.getValue(NameProperty.getInstance(), values);
