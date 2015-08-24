@@ -21,7 +21,7 @@ public class MapContent implements ComplexContent {
 		this(new MapType(), new HashMap<String, Object>());
 		((MapType) getType()).setName("anonymous");
 	}
-	
+
 	public MapContent(ComplexType type, Map<String, ?> content) {
 		this.type = type;
 		this.content = content;
