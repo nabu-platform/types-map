@@ -20,7 +20,7 @@ public class MapContent implements ComplexContent {
 	public MapContent() {
 		this(new MapType(), new HashMap<String, Object>());
 	}
-	
+
 	public MapContent(ComplexType type, Map<String, ?> content) {
 		this.type = type;
 		this.content = content;

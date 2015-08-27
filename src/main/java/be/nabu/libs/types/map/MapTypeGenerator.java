@@ -7,7 +7,9 @@ public class MapTypeGenerator implements ModifiableComplexTypeGenerator {
 
 	@Override
 	public ModifiableComplexType newComplexType() {
-		return new MapType();
+		MapType mapType = new MapType();
+		mapType.setName("anonymous");
+		return mapType;
 	}
 
 }
