@@ -5,11 +5,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 import be.nabu.libs.types.CollectionHandlerFactory;
+import be.nabu.libs.types.ComplexContentWrapperFactory;
 import be.nabu.libs.types.ParsedPath;
 import be.nabu.libs.types.api.CollectionHandlerProvider;
 import be.nabu.libs.types.api.ComplexContent;
 import be.nabu.libs.types.api.ComplexType;
-import be.nabu.libs.types.java.BeanInstance;
 
 public class MapContent implements ComplexContent {
 
@@ -43,7 +43,7 @@ public class MapContent implements ComplexContent {
 				object = ((ComplexContent) object).get(parsedPath.getChildPath().toString());
 			}
 			else {
-				object = new BeanInstance(object).get(parsedPath.getChildPath().toString());
+				object = ComplexContentWrapperFactory.getInstance().getWrapper().wrap(object).get(parsedPath.getChildPath().toString());
 			}
 		}
 		return object;
@@ -72,7 +72,7 @@ public class MapContent implements ComplexContent {
 			}
 			Object targetObject = get(parsedPath.toString());
 			if (!(targetObject instanceof ComplexContent)) {
-				targetObject = new BeanInstance(targetObject);
+				targetObject = ComplexContentWrapperFactory.getInstance().getWrapper().wrap(targetObject);
 			}
 			((ComplexContent) targetObject).set(pathToSet.toString(), value);
 		}
