@@ -97,4 +97,9 @@ public class MapContent implements ComplexContent {
 	public Map getContent() {
 		return content;
 	}
+	
+	@Override
+	public String toString() {
+		return content.toString();
+	}
 }
