@@ -1,6 +1,6 @@
 package be.nabu.libs.types.map;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import be.nabu.libs.types.api.ComplexContent;
@@ -12,7 +12,7 @@ public class MapType extends BaseComplexType<Map> implements ModifiableComplexTy
 
 	@Override
 	public ComplexContent newInstance() {
-		return new MapContent(this, new HashMap<String, Object>());
+		return new MapContent(this, new LinkedHashMap<String, Object>());
 	}
 
 }
