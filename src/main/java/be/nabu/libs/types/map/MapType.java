@@ -10,9 +10,19 @@ import be.nabu.libs.types.base.BaseComplexType;
 @SuppressWarnings("rawtypes")
 public class MapType extends BaseComplexType<Map> implements ModifiableComplexType {
 
+	private boolean literal;
+	
+	public MapType() {
+		this(false);
+	}
+	
+	public MapType(boolean literal) {
+		this.literal = literal;
+	}
+	
 	@Override
 	public ComplexContent newInstance() {
-		return new MapContent(this, new LinkedHashMap<String, Object>());
+		return new MapContent(this, new LinkedHashMap<String, Object>(), literal);
 	}
 
 }
