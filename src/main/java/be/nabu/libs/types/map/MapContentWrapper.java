@@ -41,6 +41,10 @@ public class MapContentWrapper implements ComplexContentWrapper<Map> {
 				if (!values.isEmpty()) {
 					addToType(type, key, values.get(0), true);
 				}
+				else {
+					// add it as a string
+					addToType(type, key, "unknown", true);
+				}
 			}
 			else if (value != null) {
 				addToType(type, key, value, false);
