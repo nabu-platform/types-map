@@ -3,8 +3,10 @@ package be.nabu.libs.types.map;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
 
 import be.nabu.libs.types.ComplexContentWrapperFactory;
 import be.nabu.libs.types.SimpleTypeWrapperFactory;
@@ -36,10 +38,20 @@ public class MapContentWrapper implements ComplexContentWrapper<Map> {
 		type.setName("anonymous");
 		for (String key : content.keySet()) {
 			Object value = content.get(key);
-			if (value instanceof Object[] || value instanceof Collection) {
-				List<Object> values = value instanceof Object[] ? Arrays.asList((Object[]) value) : new ArrayList<Object>((Collection<Object>) value);
-				if (!values.isEmpty()) {
-					addToType(type, key, values.get(0), true);
+			if (value instanceof Object[] || value instanceof Collection || value instanceof Iterable) {
+				Iterable<Object> iterable = value instanceof Object[] ? Arrays.asList((Object[]) value) : (Iterable<Object>) value;
+				Iterator<Object> iterator = iterable.iterator();
+				if (iterator.hasNext()) {
+					Object next = iterator.next();
+					if (next instanceof Callable) {
+						try {
+							next = ((Callable) next).call();
+						}
+						catch (Exception e) {
+							throw new RuntimeException(e);
+						}
+					}
+					addToType(type, key, next, true);
 				}
 				else {
 					// add it as a string
