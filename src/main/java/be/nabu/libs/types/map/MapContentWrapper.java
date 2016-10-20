@@ -1,10 +1,8 @@
 package be.nabu.libs.types.map;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 
@@ -42,16 +40,26 @@ public class MapContentWrapper implements ComplexContentWrapper<Map> {
 				Iterable<Object> iterable = value instanceof Object[] ? Arrays.asList((Object[]) value) : (Iterable<Object>) value;
 				Iterator<Object> iterator = iterable.iterator();
 				if (iterator.hasNext()) {
-					Object next = iterator.next();
-					if (next instanceof Callable) {
-						try {
-							next = ((Callable) next).call();
+					boolean added = false;
+					while(iterator.hasNext()) {
+						Object next = iterator.next();
+						if (next == null) {
+							continue;
 						}
-						catch (Exception e) {
-							throw new RuntimeException(e);
+						if (next instanceof Callable) {
+							try {
+								next = ((Callable) next).call();
+							}
+							catch (Exception e) {
+								throw new RuntimeException(e);
+							}
 						}
+						addToType(type, key, next, true);
+						added = true;
 					}
-					addToType(type, key, next, true);
+					if (!added) {
+						addToType(type, key, "unknown", true);	
+					}
 				}
 				else {
 					// add it as a string
