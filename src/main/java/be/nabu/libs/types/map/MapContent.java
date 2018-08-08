@@ -2,7 +2,9 @@ package be.nabu.libs.types.map;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 
 import be.nabu.libs.types.CollectionHandlerFactory;
 import be.nabu.libs.types.ComplexContentWrapperFactory;
@@ -115,5 +117,19 @@ public class MapContent implements ComplexContent {
 	@Override
 	public String toString() {
 		return content.toString();
+	}
+
+	@SuppressWarnings({ "unchecked", "rawtypes" })
+	public Map toMap() {
+		Map map = new LinkedHashMap();
+		for (Map.Entry entry : (Set<Map.Entry>) content.entrySet()) {
+			if (entry.getValue() instanceof MapContent) {
+				map.put(entry.getKey(), ((MapContent) entry.getValue()).toMap());
+			}
+			else {
+				map.put(entry.getKey(), entry.getValue());
+			}
+		}
+		return map;
 	}
 }
