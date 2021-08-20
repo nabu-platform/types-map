@@ -86,6 +86,9 @@ public class MapContent implements ComplexContent {
 					}
 				}
 				Object targetObject = get(parsedPath.toString());
+				if (targetObject == null) {
+					throw new IllegalStateException("Could not find: " + parsedPath.toString() + " in path: " + path);
+				}
 				if (!(targetObject instanceof ComplexContent)) {
 					targetObject = ComplexContentWrapperFactory.getInstance().getWrapper().wrap(targetObject);
 				}
