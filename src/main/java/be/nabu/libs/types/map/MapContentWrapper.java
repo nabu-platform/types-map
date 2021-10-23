@@ -15,6 +15,7 @@ import be.nabu.libs.types.base.ComplexElementImpl;
 import be.nabu.libs.types.base.SimpleElementImpl;
 import be.nabu.libs.types.base.ValueImpl;
 import be.nabu.libs.types.properties.MaxOccursProperty;
+import be.nabu.libs.types.properties.MinOccursProperty;
 
 @SuppressWarnings("rawtypes")
 public class MapContentWrapper implements ComplexContentWrapper<Map> {
@@ -77,15 +78,16 @@ public class MapContentWrapper implements ComplexContentWrapper<Map> {
 	private static void addToType(MapType type, String key, Object value, boolean inList) {
 		DefinedSimpleType<? extends Object> wrap = SimpleTypeWrapperFactory.getInstance().getWrapper().wrap(value.getClass());
 		if (wrap != null) {
-			type.add(new SimpleElementImpl(key, wrap, type, new ValueImpl<Integer>(MaxOccursProperty.getInstance(), inList ? 0 : 1)));
+			// we don't know whether it is mandatory or not, but we'll assume not
+			type.add(new SimpleElementImpl(key, wrap, type, new ValueImpl<Integer>(MaxOccursProperty.getInstance(), inList ? 0 : 1), new ValueImpl<Integer>(MinOccursProperty.getInstance(), 0)));
 		}
 		else if (value instanceof Map) {
-			type.add(new ComplexElementImpl(key, buildFromContent((Map) value), type, new ValueImpl<Integer>(MaxOccursProperty.getInstance(), inList ? 0 : 1)));
+			type.add(new ComplexElementImpl(key, buildFromContent((Map) value), type, new ValueImpl<Integer>(MaxOccursProperty.getInstance(), inList ? 0 : 1), new ValueImpl<Integer>(MinOccursProperty.getInstance(), 0)));
 		}
 		else {
 			ComplexContent complexContent = ComplexContentWrapperFactory.getInstance().getWrapper().wrap(value);
 			if (complexContent != null) {
-				type.add(new ComplexElementImpl(key, complexContent.getType(), type, new ValueImpl<Integer>(MaxOccursProperty.getInstance(), inList ? 0 : 1)));
+				type.add(new ComplexElementImpl(key, complexContent.getType(), type, new ValueImpl<Integer>(MaxOccursProperty.getInstance(), inList ? 0 : 1), new ValueImpl<Integer>(MinOccursProperty.getInstance(), 0)));
 			}
 		}
 	}

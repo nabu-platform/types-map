@@ -9,9 +9,16 @@ import java.util.Set;
 import be.nabu.libs.types.CollectionHandlerFactory;
 import be.nabu.libs.types.ComplexContentWrapperFactory;
 import be.nabu.libs.types.ParsedPath;
+import be.nabu.libs.types.SimpleTypeWrapperFactory;
 import be.nabu.libs.types.api.CollectionHandlerProvider;
 import be.nabu.libs.types.api.ComplexContent;
 import be.nabu.libs.types.api.ComplexType;
+import be.nabu.libs.types.api.DefinedSimpleType;
+import be.nabu.libs.types.api.SimpleTypeWrapper;
+import be.nabu.libs.types.base.SimpleElementImpl;
+import be.nabu.libs.types.base.ValueImpl;
+import be.nabu.libs.types.properties.MaxOccursProperty;
+import be.nabu.libs.types.properties.MinOccursProperty;
 
 public class MapContent implements ComplexContent {
 
@@ -87,6 +94,7 @@ public class MapContent implements ComplexContent {
 				}
 				Object targetObject = get(parsedPath.toString());
 				if (targetObject == null) {
+					// TODO: simply add a new map content with a dynamic map type?
 					throw new IllegalStateException("Could not find: " + parsedPath.toString() + " in path: " + path);
 				}
 				if (!(targetObject instanceof ComplexContent)) {
@@ -108,6 +116,32 @@ public class MapContent implements ComplexContent {
 			}
 			else {
 				content.put(parsedPath.getName(), value);
+				// we update the type to have this new field, otherwise we might not be able to access it later (e.g. for marshalling)
+				if (value != null && type instanceof MapType && type.get(parsedPath.getName()) == null) {
+					CollectionHandlerProvider handler = CollectionHandlerFactory.getInstance().getHandler().getHandler(value.getClass());
+					Class<?> clazz = null;
+					if (handler == null) {
+						clazz = value.getClass();
+					}
+					else {
+						for (Object object : handler.getAsIterable(value)) {
+							if (object != null) {
+								clazz = object.getClass();
+								break;
+							}
+						}
+						if (clazz == null) {
+							handler.getComponentType(value.getClass());
+						}
+					}
+					DefinedSimpleType<? extends Object> wrap = SimpleTypeWrapperFactory.getInstance().getWrapper().wrap(clazz);
+					if (wrap != null) {
+						((MapType) type).add(new SimpleElementImpl(parsedPath.getName(), wrap, type, new ValueImpl<Integer>(MinOccursProperty.getInstance(), 0), new ValueImpl<Integer>(MaxOccursProperty.getInstance(), handler == null ? 1 : 0)));
+					}
+					else {
+						// TODO: check for complex types?
+					}
+				}
 			}
 		}
 	}
