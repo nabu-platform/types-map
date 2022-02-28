@@ -70,6 +70,10 @@ public class MapContentWrapper implements ComplexContentWrapper<Map> {
 			else if (value != null) {
 				addToType(type, key, value, false);
 			}
+			// if we have an empty "$value", it is for a complex simle type and should be a string
+			else if (value == null && key.equals("$value")) {
+				addToType(type, key, "", false);
+			}
 		}
 		return type;
 	}
