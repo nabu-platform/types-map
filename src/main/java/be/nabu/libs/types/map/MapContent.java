@@ -5,6 +5,7 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -52,11 +53,11 @@ public class MapContent implements ComplexContent {
 	@Override
 	public Object get(String path) {
 		Object object;
+		ParsedPath parsedPath = new ParsedPath(path);
 		if (content.containsKey(path)) {
 			object = content.get(path);
 		}
 		else {
-			ParsedPath parsedPath = new ParsedPath(path);
 			object = content.get(parsedPath.getName());
 			if (object != null && parsedPath.getIndex() != null) {
 				CollectionHandlerProvider handler = CollectionHandlerFactory.getInstance().getHandler().getHandler(object.getClass());
@@ -77,7 +78,36 @@ public class MapContent implements ComplexContent {
 		// this should only ever occur at the deepest level
 		// we don't want the Map to be interpreted as a key/value store (e.g. for xml marshalling)
 		if (object instanceof Map) {
-			return new MapContent((ComplexType) getType().get(path).getType(), (Map) object);
+			// we _do_ have complex keys at which point we should hit the first branch
+			// we could verify this further, but for now we leave it like this
+			Element<?> element = getType().get(path);
+			if (element == null) {
+				element = getType().get(parsedPath.getName());
+				if (element == null) {
+					throw new RuntimeException("Can not find path: " + path);
+				}
+			}
+			return new MapContent((ComplexType) element.getType(), (Map) object);
+		}
+		// we might have an iteration of maps
+		else if (object instanceof Iterable) {
+			List result = new ArrayList();
+			for (Object single : (Iterable) object) {
+				if (single instanceof Map) {
+					Element<?> element = getType().get(path);
+					if (element == null) {
+						element = getType().get(parsedPath.getName());
+						if (element == null) {
+							throw new RuntimeException("Can not find path: " + path);
+						}
+					}
+					result.add(new MapContent((ComplexType) element.getType(), (Map) single));
+				}
+				else {
+					result.add(single);
+				}
+			}
+			object = result;
 		}
 		return object;
 	}
