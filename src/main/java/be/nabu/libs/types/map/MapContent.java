@@ -81,12 +81,12 @@ public class MapContent implements ComplexContent {
 		// this in turn was not correctly marshalled back into an XML and it was quietly ignored
 		// there was in fact an object "configuration" which already had a subobject "properties", but the flat map handling does not recognize this
 		// for those cases, it is better to autowrap maps into mapcontent, which enables complex handling
-		
 		// however, some other modules (notably the swagger provider) builds correct hierarchical maps but does not do well when the typing is enforced through mapcontent
 		// instead it works with maps and presumably does a MapContentWrapper wrapping which dynamically generates a new type based on the map rather than using the centralized type available in map content
 		// because swagger is so fked up definition wise, there is no single type that can actually describe it
 		// however, specifically because we auto-wrap maps and _don't_ want the behavior there, it is disabled by default
 		// the only real known problem with maps is when path-like keys are not enforced to be hierarchic
+		// also, if we force the map wrapping, it seems derive() + json serialization breaks in glue, we get empty objects (very similar to the empty objects in the swagger). it is not yet fully understood how this is related but we'll leave it like this for now
 		if (!wrapMaps) {
 			return object;
 		}
