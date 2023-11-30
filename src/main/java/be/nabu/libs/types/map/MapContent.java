@@ -51,12 +51,13 @@ public class MapContent implements ComplexContent {
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	@Override
 	public Object get(String path) {
+		ParsedPath parsedPath = null;
 		Object object;
-		ParsedPath parsedPath = new ParsedPath(path);
 		if (content.containsKey(path)) {
 			object = content.get(path);
 		}
 		else {
+			parsedPath = new ParsedPath(path);
 			object = content.get(parsedPath.getName());
 			if (object != null && parsedPath.getIndex() != null) {
 				CollectionHandlerProvider handler = CollectionHandlerFactory.getInstance().getHandler().getHandler(object.getClass());
@@ -93,7 +94,7 @@ public class MapContent implements ComplexContent {
 		// we _do_ have complex keys at which point we should hit the first branch
 		// we could verify this further, but for now we leave it like this
 		Element<?> element = getType().get(path);
-		if (element == null) {
+		if (element == null && parsedPath != null) {
 			element = getType().get(parsedPath.getName());
 		}
 		if (element != null && element.getType() instanceof ComplexType) {
