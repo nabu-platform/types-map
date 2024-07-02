@@ -11,8 +11,10 @@ import be.nabu.libs.types.SimpleTypeWrapperFactory;
 import be.nabu.libs.types.api.ComplexContent;
 import be.nabu.libs.types.api.ComplexContentWrapper;
 import be.nabu.libs.types.api.DefinedSimpleType;
+import be.nabu.libs.types.api.ModifiableComplexType;
 import be.nabu.libs.types.base.ComplexElementImpl;
 import be.nabu.libs.types.base.SimpleElementImpl;
+import be.nabu.libs.types.base.TypeBaseUtils;
 import be.nabu.libs.types.base.ValueImpl;
 import be.nabu.libs.types.properties.MaxOccursProperty;
 import be.nabu.libs.types.properties.MinOccursProperty;
@@ -86,12 +88,23 @@ public class MapContentWrapper implements ComplexContentWrapper<Map> {
 			type.add(new SimpleElementImpl(key, wrap, type, new ValueImpl<Integer>(MaxOccursProperty.getInstance(), inList ? 0 : 1), new ValueImpl<Integer>(MinOccursProperty.getInstance(), 0)));
 		}
 		else if (value instanceof Map) {
-			type.add(new ComplexElementImpl(key, buildFromContent((Map) value), type, new ValueImpl<Integer>(MaxOccursProperty.getInstance(), inList ? 0 : 1), new ValueImpl<Integer>(MinOccursProperty.getInstance(), 0)));
+			MapType buildFromContent = buildFromContent((Map) value);
+			if (type.get(key) != null) {
+				TypeBaseUtils.merge((ModifiableComplexType) type.get(key).getType(), buildFromContent);
+			}
+			else {
+				type.add(new ComplexElementImpl(key, buildFromContent, type, new ValueImpl<Integer>(MaxOccursProperty.getInstance(), inList ? 0 : 1), new ValueImpl<Integer>(MinOccursProperty.getInstance(), 0)));
+			}
 		}
 		else {
 			ComplexContent complexContent = ComplexContentWrapperFactory.getInstance().getWrapper().wrap(value);
 			if (complexContent != null) {
-				type.add(new ComplexElementImpl(key, complexContent.getType(), type, new ValueImpl<Integer>(MaxOccursProperty.getInstance(), inList ? 0 : 1), new ValueImpl<Integer>(MinOccursProperty.getInstance(), 0)));
+				if (type.get(key) != null) {
+					TypeBaseUtils.merge((ModifiableComplexType) type.get(key).getType(), complexContent.getType());
+				}
+				else {
+					type.add(new ComplexElementImpl(key, complexContent.getType(), type, new ValueImpl<Integer>(MaxOccursProperty.getInstance(), inList ? 0 : 1), new ValueImpl<Integer>(MinOccursProperty.getInstance(), 0)));
+				}
 			}
 		}
 	}
