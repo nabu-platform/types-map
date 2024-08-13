@@ -64,7 +64,7 @@ public class MapContent implements ComplexContent {
 				if (handler == null) {
 					throw new IllegalArgumentException("No collection handler for: " + object);
 				}
-				object = handler.get(object, handler.unmarshalIndex(parsedPath.getIndex()));
+				object = handler.get(object, handler.unmarshalIndex(parsedPath.getIndex(), object));
 			}
 			if (object != null && parsedPath.getChildPath() != null) {
 				if (object instanceof ComplexContent) {
@@ -196,7 +196,7 @@ public class MapContent implements ComplexContent {
 				if (handler == null) {
 					throw new IllegalArgumentException("No collection handler for: " + object);
 				}
-				object = handler.set(object, handler.unmarshalIndex(parsedPath.getIndex()), value);
+				object = handler.set(object, handler.unmarshalIndex(parsedPath.getIndex(), object), value);
 				content.put(parsedPath.getName(), object);
 			}
 			else {
