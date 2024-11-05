@@ -141,6 +141,12 @@ public class MapContent implements ComplexContent {
 	public ComplexType getType() {
 		return type;
 	}
+	
+	@Override
+	public boolean has(String path) {
+		// TODO: use parsedpath and recurse
+		return content != null && content.containsKey(path);
+	}
 
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	@Override
