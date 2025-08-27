@@ -23,6 +23,7 @@ import be.nabu.libs.types.api.ModifiableComplexTypeGenerator;
 public class MapTypeGenerator implements ModifiableComplexTypeGenerator {
 
 	private boolean literal;
+	private boolean wrapMaps;
 	
 	public MapTypeGenerator() {
 		this(false);
@@ -35,8 +36,16 @@ public class MapTypeGenerator implements ModifiableComplexTypeGenerator {
 	@Override
 	public ModifiableComplexType newComplexType() {
 		MapType mapType = new MapType(literal);
+		mapType.setWrapMaps(wrapMaps);
 		mapType.setName("anonymous");
 		return mapType;
+	}
+
+	public boolean isWrapMaps() {
+		return wrapMaps;
+	}
+	public void setWrapMaps(boolean wrapMaps) {
+		this.wrapMaps = wrapMaps;
 	}
 
 }

@@ -164,10 +164,20 @@ public class MapContent implements ComplexContent {
 		// TODO: use parsedpath and recurse
 		return content != null && content.containsKey(path);
 	}
+	
+	@Override
+	public void delete(String path) {
+		// TODO: use parsedpath and recurse
+		content.remove(path);
+	}
 
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	@Override
 	public void set(String path, Object value) {
+		// when setting a value directly in this instance (so not a child instance), we need to check that our type definition is still in sync
+		// note that structure instances are aimed at type safety: constraining the runtime to adhere to the definition
+		// map contents are different, they are aimed at flexibility: letting the runtime change the definition at hoc
+		boolean recalculateType = false;
 		if (literal && type.get(path) != null) {
 			content.put(path, value);
 		}
@@ -211,6 +221,7 @@ public class MapContent implements ComplexContent {
 				((ComplexContent) targetObject).set(pathToSet.toString(), value);
 			}
 			else if (parsedPath.getIndex() != null) {
+				recalculateType = true;
 				Object object = get(parsedPath.getName());
 				if (object == null) {
 					object = new ArrayList();
@@ -223,39 +234,111 @@ public class MapContent implements ComplexContent {
 				content.put(parsedPath.getName(), object);
 			}
 			else {
+				recalculateType = true;
 				content.put(parsedPath.getName(), value);
 				// we update the type to have this new field, otherwise we might not be able to access it later (e.g. for marshalling)
-				if (value != null && type instanceof MapType && type.get(parsedPath.getName()) == null) {
-					CollectionHandlerProvider handler = CollectionHandlerFactory.getInstance().getHandler().getHandler(value.getClass());
-					Class<?> clazz = null;
-					if (handler == null) {
-						clazz = value.getClass();
+			}
+			// if we want to recalculate the type, let's do so
+			if (recalculateType && type instanceof ModifiableComplexType) {
+				value = content.get(parsedPath.getName());
+				// can only recalculate with a value
+				if (value != null) {
+					Element<?> originalElement = type.get(parsedPath.getName());
+					// remove the original type, we is recalculating
+					if (originalElement != null) {
+						((ModifiableComplexType) type).remove(originalElement);
+					}
+					// @2025-08-25: if you first parse an xml with xml.objectify, then dynamically add a new complex field with a regular assign (so not a structure extension which actually creates a new type)
+					// this new field (which is a map) gets picked up by the collection handler with a StringMapCollectionHandler
+					// this means, this then starts to fail as it is treated as a string
+					// i _think_ we want all maps set as dynamic new content to be treated as a map container rather than a collection, but for now I will limit it to this particular boolean which already exists and is set to true in xml.objectify
+	//					boolean dynamicallyWrapMaps = wrapMaps;
+					// there are plenty of places (e.g. json.objectify) that do not set the wrapMaps boolean...so currently assuming that all dynamically added content must pass through here
+					// hard to gauge backwards compatibility of this change
+					// maps get special treatment...
+					if (value instanceof Map) {
+						MapType dynamicMapType = MapContentWrapper.buildFromContent((Map<String, ?>) value);
+						((ModifiableComplexType) type).add(new ComplexElementImpl(parsedPath.getName(), dynamicMapType, type, new ValueImpl<Integer>(MinOccursProperty.getInstance(), 0), new ValueImpl<Integer>(MaxOccursProperty.getInstance(), 1)));
+						// we have now added a Map, however any dynamic changes to that map later on (e.g. new keys) will NOT trigger a re-evaluation of the generated type
+						// to force that, we wrap the original map in a mapcontent
+						MapContent mapContent = new MapContent(dynamicMapType, (Map<String, ?>) value);
+						// inherit!
+						mapContent.wrapMaps = wrapMaps;
+						// overwrite with wrapped
+						content.put(parsedPath.getName(), mapContent);
+					}
+					else if (value instanceof ComplexContent) {
+						((ModifiableComplexType) type).add(new ComplexElementImpl(parsedPath.getName(), ((ComplexContent) value).getType(), type, new ValueImpl<Integer>(MinOccursProperty.getInstance(), 0), new ValueImpl<Integer>(MaxOccursProperty.getInstance(), 1)));
 					}
 					else {
-						for (Object object : handler.getAsIterable(value)) {
-							if (object != null) {
-								clazz = object.getClass();
-								break;
+						CollectionHandlerProvider handler = CollectionHandlerFactory.getInstance().getHandler().getHandler(value.getClass());
+						Class<?> clazz = null;
+						MapType dynamicMapType = null;
+						ComplexType defaultComplexType = null;
+						List<Object> wrappedList = new ArrayList<Object>();
+						if (handler == null) {
+							clazz = value.getClass();
+						}
+						else {
+							// if the children are maps, do a dynamic type
+							// a list of wrapped elements so we don't expose Map as is but wrap it in MapContent to get notified of future dynamic changes
+							// we always build a secondary map because we don't know at which point we might encounter a map
+							for (Object object : handler.getAsIterable(value)) {
+								if (object != null) {
+									if (object instanceof Map) {
+										dynamicMapType = MapContentWrapper.buildFromContent((Map<String, ?>) object, dynamicMapType == null ? new MapType() : dynamicMapType);
+										MapContent mapContent = new MapContent(dynamicMapType, (Map<String, ?>) object);
+										// inherit!
+										mapContent.wrapMaps = wrapMaps;
+										wrappedList.add(mapContent);
+									}
+									// TODO: we currently don't check for consistency like making sure they share a common parent type etc, we just take "the last one" in this case
+									else if (object instanceof ComplexContent) {
+										defaultComplexType = ((ComplexContent) object).getType();
+										wrappedList.add(object);
+									}
+									else {
+										wrappedList.add(object);
+										clazz = object.getClass();
+									}
+								}
+								// even nulls need to be maintained to make sure the iterable is consistent
+								else {
+									wrappedList.add(object);
+								}
 							}
 						}
-						// we add the ParameterizedType check, otherwise, if you are using raw lists, the component type thingy will throw an exception
-						if (clazz == null && value.getClass() instanceof Type && ((Type) value.getClass()) instanceof ParameterizedType) {
-							handler.getComponentType(value.getClass());
+						if (dynamicMapType != null) {
+							((ModifiableComplexType) type).add(new ComplexElementImpl(parsedPath.getName(), dynamicMapType, type, new ValueImpl<Integer>(MinOccursProperty.getInstance(), 0), new ValueImpl<Integer>(MaxOccursProperty.getInstance(), handler == null ? 1 : 0)));
+							// if we created a new list of wrapped elements, set it
+							if (handler != null) {
+								// we update the collection we already set
+								content.put(parsedPath.getName(), wrappedList);
+							}
 						}
-						// currently if we can't determine what is in there, we could either opt for Object.class or String.class
-						// however, because the following code is focused on simple types, we use string atm
-						// in the future we could make this more complex
+						else if (defaultComplexType != null) {
+							((ModifiableComplexType) type).add(new ComplexElementImpl(parsedPath.getName(), defaultComplexType, type, new ValueImpl<Integer>(MinOccursProperty.getInstance(), 0), new ValueImpl<Integer>(MaxOccursProperty.getInstance(), handler == null ? 1 : 0)));
+						}
 						else {
-							clazz = String.class;
+							// we add the ParameterizedType check, otherwise, if you are using raw lists, the component type thingy will throw an exception
+							if (clazz == null && value.getClass() instanceof Type && ((Type) value.getClass()) instanceof ParameterizedType) {
+								clazz = handler.getComponentType(value.getClass());
+							}
+							// currently if we can't determine what is in there, we could either opt for Object.class or String.class
+							// however, because the following code is focused on simple types, we use string atm
+							// in the future we could make this more complex
+							else {
+								clazz = String.class;
+							}
+							DefinedSimpleType<? extends Object> wrap = SimpleTypeWrapperFactory.getInstance().getWrapper().wrap(clazz);
+							if (wrap != null) {
+								((ModifiableComplexType) type).add(new SimpleElementImpl(parsedPath.getName(), wrap, type, new ValueImpl<Integer>(MinOccursProperty.getInstance(), 0), new ValueImpl<Integer>(MaxOccursProperty.getInstance(), handler == null ? 1 : 0)));
+							}
+							else {
+								// TODO: check for complex types like java beans that are not autowrapped to complex content but are not simple types?
+								throw new RuntimeException("Not supported for: " + parsedPath.getName());
+							}
 						}
-					}
-					DefinedSimpleType<? extends Object> wrap = SimpleTypeWrapperFactory.getInstance().getWrapper().wrap(clazz);
-					if (wrap != null) {
-						((MapType) type).add(new SimpleElementImpl(parsedPath.getName(), wrap, type, new ValueImpl<Integer>(MinOccursProperty.getInstance(), 0), new ValueImpl<Integer>(MaxOccursProperty.getInstance(), handler == null ? 1 : 0)));
-					}
-					else {
-						// TODO: check for complex types?
-						System.out.println("-----------------_> hitting it!");
 					}
 				}
 			}

@@ -50,11 +50,18 @@ public class MapContentWrapper implements ComplexContentWrapper<Map> {
 		return Map.class;
 	}
 
-	@SuppressWarnings("unchecked")
 	public static MapType buildFromContent(Map<String, ?> content) {
-		MapType type = new MapType();
-		type.setName("anonymous");
+		return buildFromContent(content, new MapType());
+	}
+	
+	// can use this method to "enrich" for example in a loop where not all entries have the same fields
+	@SuppressWarnings("unchecked")
+	public static MapType buildFromContent(Map<String, ?> content, MapType type) {
+		type.setName(content.get("$root") instanceof String ? (String) content.get("$root") : "anonymous");
 		for (String key : content.keySet()) {
+			if ("$root".equals(key)) {
+				continue;
+			}
 			Object value = content.get(key);
 			if (value instanceof Object[] || value instanceof Collection || value instanceof Iterable) {
 				Iterable<Object> iterable = value instanceof Object[] ? Arrays.asList((Object[]) value) : (Iterable<Object>) value;
@@ -101,8 +108,11 @@ public class MapContentWrapper implements ComplexContentWrapper<Map> {
 	private static void addToType(MapType type, String key, Object value, boolean inList) {
 		DefinedSimpleType<? extends Object> wrap = SimpleTypeWrapperFactory.getInstance().getWrapper().wrap(value.getClass());
 		if (wrap != null) {
-			// we don't know whether it is mandatory or not, but we'll assume not
-			type.add(new SimpleElementImpl(key, wrap, type, new ValueImpl<Integer>(MaxOccursProperty.getInstance(), inList ? 0 : 1), new ValueImpl<Integer>(MinOccursProperty.getInstance(), 0)));
+			// only add if it doesn't exist yet!
+			if (type.get(key) == null) {
+				// we don't know whether it is mandatory or not, but we'll assume not
+				type.add(new SimpleElementImpl(key, wrap, type, new ValueImpl<Integer>(MaxOccursProperty.getInstance(), inList ? 0 : 1), new ValueImpl<Integer>(MinOccursProperty.getInstance(), 0)));
+			}
 		}
 		else if (value instanceof Map) {
 			MapType buildFromContent = buildFromContent((Map) value);

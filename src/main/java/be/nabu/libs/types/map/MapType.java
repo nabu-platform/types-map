@@ -28,6 +28,7 @@ import be.nabu.libs.types.base.BaseComplexType;
 public class MapType extends BaseComplexType<Map> implements ModifiableComplexType {
 
 	private boolean literal;
+	private boolean wrapMaps;
 	
 	public MapType() {
 		this(false);
@@ -39,7 +40,16 @@ public class MapType extends BaseComplexType<Map> implements ModifiableComplexTy
 	
 	@Override
 	public ComplexContent newInstance() {
-		return new MapContent(this, new LinkedHashMap<String, Object>(), literal);
+		MapContent mapContent = new MapContent(this, new LinkedHashMap<String, Object>(), literal);
+		mapContent.setWrapMaps(wrapMaps);
+		return mapContent;
+	}
+
+	public boolean isWrapMaps() {
+		return wrapMaps;
+	}
+	public void setWrapMaps(boolean wrapMaps) {
+		this.wrapMaps = wrapMaps;
 	}
 
 }
