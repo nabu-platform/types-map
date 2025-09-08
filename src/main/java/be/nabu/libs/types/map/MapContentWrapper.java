@@ -50,13 +50,13 @@ public class MapContentWrapper implements ComplexContentWrapper<Map> {
 		return Map.class;
 	}
 
-	public static MapType buildFromContent(Map<String, ?> content) {
+	public static ModifiableComplexType buildFromContent(Map<String, ?> content) {
 		return buildFromContent(content, new MapType());
 	}
 	
 	// can use this method to "enrich" for example in a loop where not all entries have the same fields
 	@SuppressWarnings("unchecked")
-	public static MapType buildFromContent(Map<String, ?> content, MapType type) {
+	public static ModifiableComplexType buildFromContent(Map<String, ?> content, ModifiableComplexType type) {
 		type.setName(content.get("$root") instanceof String ? (String) content.get("$root") : "anonymous");
 		for (String key : content.keySet()) {
 			if ("$root".equals(key)) {
@@ -105,7 +105,7 @@ public class MapContentWrapper implements ComplexContentWrapper<Map> {
 	}
 
 	@SuppressWarnings({ "unchecked" })
-	private static void addToType(MapType type, String key, Object value, boolean inList) {
+	private static void addToType(ModifiableComplexType type, String key, Object value, boolean inList) {
 		DefinedSimpleType<? extends Object> wrap = SimpleTypeWrapperFactory.getInstance().getWrapper().wrap(value.getClass());
 		if (wrap != null) {
 			// only add if it doesn't exist yet!
@@ -115,7 +115,7 @@ public class MapContentWrapper implements ComplexContentWrapper<Map> {
 			}
 		}
 		else if (value instanceof Map) {
-			MapType buildFromContent = buildFromContent((Map) value);
+			ModifiableComplexType buildFromContent = buildFromContent((Map) value);
 			if (type.get(key) != null) {
 				TypeBaseUtils.merge((ModifiableComplexType) type.get(key).getType(), buildFromContent);
 			}

@@ -256,16 +256,23 @@ public class MapContent implements ComplexContent {
 					// there are plenty of places (e.g. json.objectify) that do not set the wrapMaps boolean...so currently assuming that all dynamically added content must pass through here
 					// hard to gauge backwards compatibility of this change
 					// maps get special treatment...
-					if (value instanceof Map) {
-						MapType dynamicMapType = MapContentWrapper.buildFromContent((Map<String, ?>) value);
+					if (value instanceof Map || value instanceof MapContent) {
+						Map<String, ?> map = value instanceof Map ? (Map) value : ((MapContent) value).getContent();
+						ModifiableComplexType dynamicMapType = originalElement != null && originalElement.getType() instanceof ModifiableComplexType ? MapContentWrapper.buildFromContent(map, (ModifiableComplexType) originalElement.getType()) : MapContentWrapper.buildFromContent(map);
 						((ModifiableComplexType) type).add(new ComplexElementImpl(parsedPath.getName(), dynamicMapType, type, new ValueImpl<Integer>(MinOccursProperty.getInstance(), 0), new ValueImpl<Integer>(MaxOccursProperty.getInstance(), 1)));
-						// we have now added a Map, however any dynamic changes to that map later on (e.g. new keys) will NOT trigger a re-evaluation of the generated type
-						// to force that, we wrap the original map in a mapcontent
-						MapContent mapContent = new MapContent(dynamicMapType, (Map<String, ?>) value);
-						// inherit!
-						mapContent.wrapMaps = wrapMaps;
-						// overwrite with wrapped
-						content.put(parsedPath.getName(), mapContent);
+						if (value instanceof Map) {
+							// we have now added a Map, however any dynamic changes to that map later on (e.g. new keys) will NOT trigger a re-evaluation of the generated type
+							// to force that, we wrap the original map in a mapcontent
+							MapContent mapContent = new MapContent(dynamicMapType, (Map<String, ?>) value);
+							// inherit!
+							mapContent.wrapMaps = wrapMaps;
+							// overwrite with wrapped
+							content.put(parsedPath.getName(), mapContent);
+						}
+						// otherwise, we already have mapcontent, just update the type
+						else {
+							((MapContent) value).type = dynamicMapType;
+						}
 					}
 					else if (value instanceof ComplexContent) {
 						((ModifiableComplexType) type).add(new ComplexElementImpl(parsedPath.getName(), ((ComplexContent) value).getType(), type, new ValueImpl<Integer>(MinOccursProperty.getInstance(), 0), new ValueImpl<Integer>(MaxOccursProperty.getInstance(), 1)));
@@ -273,7 +280,8 @@ public class MapContent implements ComplexContent {
 					else {
 						CollectionHandlerProvider handler = CollectionHandlerFactory.getInstance().getHandler().getHandler(value.getClass());
 						Class<?> clazz = null;
-						MapType dynamicMapType = null;
+						// inherit from existing element to expand upon it if possible
+						ModifiableComplexType dynamicMapType = originalElement != null && originalElement.getType() instanceof ModifiableComplexType ? (ModifiableComplexType) originalElement.getType() : null;
 						ComplexType defaultComplexType = null;
 						List<Object> wrappedList = new ArrayList<Object>();
 						if (handler == null) {
@@ -375,6 +383,10 @@ public class MapContent implements ComplexContent {
 
 	public void setWrapMaps(boolean wrapMaps) {
 		this.wrapMaps = wrapMaps;
+	}
+
+	public void setType(ComplexType type) {
+		this.type = type;
 	}
 	
 }
