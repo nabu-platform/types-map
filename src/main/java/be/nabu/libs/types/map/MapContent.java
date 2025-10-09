@@ -335,10 +335,14 @@ public class MapContent implements ComplexContent {
 							// currently if we can't determine what is in there, we could either opt for Object.class or String.class
 							// however, because the following code is focused on simple types, we use string atm
 							// in the future we could make this more complex
-							else {
+							else if (clazz == null ){
 								clazz = String.class;
 							}
 							DefinedSimpleType<? extends Object> wrap = SimpleTypeWrapperFactory.getInstance().getWrapper().wrap(clazz);
+							if (wrap == null) {
+								// fall back to string
+								wrap = SimpleTypeWrapperFactory.getInstance().getWrapper().wrap(String.class);
+							}
 							if (wrap != null) {
 								((ModifiableComplexType) type).add(new SimpleElementImpl(parsedPath.getName(), wrap, type, new ValueImpl<Integer>(MinOccursProperty.getInstance(), 0), new ValueImpl<Integer>(MaxOccursProperty.getInstance(), handler == null ? 1 : 0)));
 							}
